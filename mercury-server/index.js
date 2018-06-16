@@ -1,3 +1,4 @@
+const db = require('./db');
 const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({
@@ -11,7 +12,6 @@ const wss = new WebSocket.Server({
         zlibInflateOptions: {
             chunkSize: 10 * 1024
         },
-
         clientNoContextTakeover: true,
         serverNoContextTakeover: true,
         clientMaxWindowBits: 10,
@@ -26,6 +26,13 @@ wss.on('connection', function connection(ws) {
     ws.on('message', function incoming(message) {
         console.log('received: %s', message);
     });
+
+    const stateString = db.toString(db.state);
+
+    ws.send(JSON.stringify({
+        type: 'state',
+        data: stateString
+    }));
 
     ws.send('something');
 });
