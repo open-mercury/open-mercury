@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './App.css';
-import './Client';
+import Client from './Client';
 
 import shipShield from './ship-shield.png';
 import ship from './ship.png';
@@ -14,6 +14,10 @@ import ship from './ship.png';
 //     strength: 0
 //   }
 // }
+
+const client = new Client("ws://localhost:8080");
+console.log(client.state);
+
 
 interface IShipProps {
   shieldLevel: number;

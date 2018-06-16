@@ -38,7 +38,7 @@ export default class Server {
     }
 
     updateState(changes: any) {
-        deepmerge(this.state, changes)
+        this.state = deepmerge(this.state, changes)
         this.wss.clients.forEach((ws: WebSocket) => {
             this.sendState(ws);
         });

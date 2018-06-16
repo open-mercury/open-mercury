@@ -75,7 +75,7 @@ function buildDiff(oldState: any, newState: any) {
 
 export default class Client {
 
-    public state = {};
+    public state: any | null = null;
     private ws: WebSocket;
     private serverState = {};
 
@@ -84,6 +84,10 @@ export default class Client {
 
         this.ws.onopen = (event) => {
             this.requestState();
+
+            // Testing
+            this.state = { "bob's": "your uncle" };
+            this.sendState();
         };
 
         this.ws.onmessage = (event) => {
@@ -109,6 +113,7 @@ export default class Client {
         case "state":
             this.state = deepUpdate(this.state, message.state);
             this.serverState = this.state;
+            console.log(this.state);
             break;
         default:
             console.log(message);
