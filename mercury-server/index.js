@@ -1,5 +1,7 @@
-const db = require('./db');
+const { Db } = require('./db');
 const WebSocket = require('ws');
+
+const db = new Db('state.json');
 
 const wss = new WebSocket.Server({
     port: 8080,
@@ -16,25 +18,34 @@ const wss = new WebSocket.Server({
         serverNoContextTakeover: true,
         clientMaxWindowBits: 10,
         serverMaxWindowBits: 10,
-
         concurrencyLimit: 10,
         threshold: 1024,
     }
 });
 
-wss.on('connection', function connection(ws) {
-    ws.on('message', function incoming(message) {
-        console.log('received: %s', message);
+wss.on('connection', (ws) => {
+    ws.on('message', (data) => {
+        console.log('received: %s', data);
+
+        const message = JSON.parse(data);
+
+        if (message.type === 'set') {
+            db.apply(message.data);
+        }
+
+        const messageString = JSON.stringify({
+            type: 'state',
+            state: db.state
+        });
+
+        wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(messageString);
+            }
+        });
     });
 
-    const stateString = db.toString(db.state);
-
-    ws.send(JSON.stringify({
-        type: 'state',
-        data: stateString
-    }));
-
-    ws.send('something');
+    console.log("new connection");
 });
 
 
