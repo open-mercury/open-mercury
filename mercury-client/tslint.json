@@ -5,5 +5,10 @@
       "config/**/*.js",
       "node_modules/**/*.ts"
     ]
+  },
+  "rules": {
+    "semicolon": "always",
+    "no-console": false,
+    "object-literal-sort-keys": false
   }
 }

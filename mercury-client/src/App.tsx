@@ -1,5 +1,6 @@
 import * as React from 'react';
 import './App.css';
+import './Client';
 
 import shipShield from './ship-shield.png';
 import ship from './ship.png';
@@ -15,21 +16,23 @@ import ship from './ship.png';
 // }
 
 interface IShipProps {
-  shieldLevel: number
+  shieldLevel: number;
 }
 
 interface IAppState {
-  enabled: boolean
-  frequency: number
-  shieldLevel: number
+  enabled: boolean;
+  frequency: number;
+  shieldLevel: number;
 }
 
 class Ship extends React.Component<IShipProps> {
   public render() {
-    return <div className="ship">
+    return (
+      <div className="ship">
         <img src={ship}/>
         <img className="shield-overlay" src={shipShield} style={{opacity: this.props.shieldLevel}}/>
       </div>
+    );
   }
 }
 
@@ -77,7 +80,7 @@ class App extends React.Component<any, IAppState> {
     this.setState({
       ...this.state,
       enabled: !this.state.enabled
-    })
+    });
   }
 
   private updateFrequency() {
@@ -90,7 +93,7 @@ class App extends React.Component<any, IAppState> {
     this.setState({
       ...this.state,
       frequency: parseInt(element.value, 10)
-    })
+    });
   }
 }
 

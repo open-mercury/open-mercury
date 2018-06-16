@@ -2,14 +2,23 @@
   "name": "mercury-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npm run build:live",
+    "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./index.ts"
   },
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "ws": "^5.1.2",
+    "deepmerge": "^2.1.1"
+  },
   "devDependencies": {
-    "deepmerge": "^2.1.1",
-    "ws": "^5.2.0"
+    "@types/node": "^10.3.3",
+    "@types/ws": "^5.1.2",
+    "@types/deepmerge": "^2.1.0",
+    "nodemon": "^1.17.5",
+    "ts-node": "^6.1.1",
+    "typescript": "^2.9.2"
   }
 }
