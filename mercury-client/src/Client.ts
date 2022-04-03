@@ -1,5 +1,7 @@
-function deepUpdate(oldState: any, newState: any): any
-{
+import { useEffect, useState } from 'react';
+import { Message, StartupRequest, StateChange } from './messages';
+
+export function deepUpdate(oldState: any, newState: any): any {
     if (oldState instanceof Array && newState instanceof Array) {
         return deepUpdateArray(oldState, newState);
     }
@@ -7,7 +9,7 @@ function deepUpdate(oldState: any, newState: any): any
         return deepUpdateObject(oldState, newState);
     }
     else {
-        return newState;
+        return newState ?? oldState;
     }
 }
 
@@ -17,14 +19,10 @@ function deepUpdateObject(oldState: any, newState: any): object {
     const keysArray = Array.from(keys.values());
 
     for (const key of keysArray) {
-        const value = deepUpdate(oldState[key], newState[key]);
-        if (value !== undefined) {
-            copy[key] = value;
-        }
+        copy[key] = deepUpdate(oldState[key], newState[key]);
     }
 
-    return keysArray.find(key => copy[key] !== oldState[key])
-        ?? newState;
+    return copy;
 }
 
 function deepUpdateArray(oldState: any[], newState: any[]): any[] {
@@ -46,76 +44,120 @@ function deepUpdateArray(oldState: any[], newState: any[]): any[] {
     return newState;
 }
 
-function buildDiff(oldState: any, newState: any) {
-    // TODO: Doesn't handle deleted keys or null values
-    if (newState instanceof Object) {
-        const diff: any = {};
-        for (const key of Object.keys(newState)) {
-            diff[key] = buildDiff(oldState[key], newState[key]);
-        }
+function makeId() {
+    return Math.floor(Math.random() * 1000000).toString(10);
+}
 
-        for (const key of Object.keys(diff)) {
-            if (diff[key] !== undefined) {
-                return diff;
-            }
-        }
+export type DatabaseState = any;
+export type DatabaseStateChangeDispatcher = (changes: any) => Promise<void>;
 
-        return undefined;
-    }
-    else if (oldState !== newState) {
-        return newState;
-    }
-    else {
-        return undefined;
-    }
+export type ObserverCallback = (state: DatabaseState) => void;
+export type ObserverCleanup = () => void;
+
+interface ChangeResolver {
+    resolve(): void
+    reject(): void
 }
 
 export default class Client {
 
-    public state: any | null = null;
     private ws: WebSocket;
-    private serverState = {};
+
+    public state: DatabaseState = {};
+
+    private pendingChangeResolvers: Record<string, ChangeResolver> = {};
+    private observers: Record<string, ObserverCallback> = {};
 
     constructor(url: string) {
         this.ws = new WebSocket(url);
 
-        this.ws.onopen = (event) => {
-            this.requestState();
-
-            // Testing
-            this.state = { "bob's": "your uncle" };
-            this.sendState();
+        this.ws.onopen = () => {
+            this.sendStartup();
         };
 
         this.ws.onmessage = (event) => {
-            this.receiveMessage(JSON.parse(event.data));
+            this.receiveMessage(JSON.parse(event.data) as Message);
         };
     }
 
-    public requestState() {
-        this.ws.send(JSON.stringify({
-            type: "state"
-        }));
-    }
+    public addObserver(observer: (state: DatabaseState) => void): ObserverCleanup {
+        const id = makeId();
+        this.observers[id] = observer;
 
-    public sendState() {
-        this.ws.send(JSON.stringify({
-            type: "set",
-            data: buildDiff(this.serverState, this.state)
-        }));
-    }
-
-    private receiveMessage(message: any) {
-        switch (message.type) {
-        case "state":
-            this.state = deepUpdate(this.state, message.state);
-            this.serverState = this.state;
-            console.log(this.state);
-            break;
-        default:
-            console.log(message);
-            break;
+        return () => {
+            delete this.observers[id];
         }
     }
 
+    public sendStartup() {
+        this.send({
+            type: 'startup',
+        } as StartupRequest);
+    }
+
+    public sendChange(data: any): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const id = makeId();
+
+            this.send({
+                type: 'change',
+                id: id,
+                data: data,
+            } as StateChange);
+
+            this.pendingChangeResolvers[id] = {resolve, reject};
+        });
+    }
+
+    private send(message: Message) {
+        this.ws.send(JSON.stringify(message));
+    }
+
+    private receiveMessage(message: Message) {
+        console.log('received message', message);
+
+        switch (message.type) {
+            case 'state':
+                this.state = message.data;
+                this.notifyObserversOfStateChange();
+                break;
+
+            case 'change':
+                this.state = deepUpdate(this.state, message.data);
+                this.notifyObserversOfStateChange();
+
+                const promise = this.pendingChangeResolvers[message.id];
+                promise?.resolve();
+
+                break;
+
+            case 'startup':
+            default:
+                console.error("received unexpected message type:", message.type)
+                break;
+        }
+    }
+
+    private notifyObserversOfStateChange() {
+        for (const observer of Object.values(this.observers)) {
+            try {
+                observer(this.state);
+            }
+            catch (error) {
+                console.error(`encountered error while notifying observer of state change:`, error)
+            }
+        }
+    }
+}
+
+export function useDatabaseState(client: Client): [DatabaseState, DatabaseStateChangeDispatcher] {
+    const [state, setState] = useState(client.state);
+
+    useEffect(() => {
+        return client.addObserver(newState => {
+            setState(newState);
+        });
+    }, []);
+
+    return [state, data => client.sendChange(data)];
 }

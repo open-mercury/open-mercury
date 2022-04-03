@@ -32,7 +32,7 @@ input[type="range"] {
 }
 
 .ship img.shield-overlay {
-  transition: opacity 1s;
+  transition: opacity 0.2s;
 }
 
 .ship img {
