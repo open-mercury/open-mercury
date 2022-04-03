@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { ChangeEvent, useState } from 'react';
 
 import './App.css';
@@ -6,9 +5,6 @@ import Client from './Client';
 
 import shipShield from './ship-shield.png';
 import ship from './ship.png';
-
-/* tslint:disable:max-classes-per-file */
-/* tslint:disable:no-console */
 
 const client = new Client("ws://localhost:8080");
 console.log(client.state);
