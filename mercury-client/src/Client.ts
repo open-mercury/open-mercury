@@ -11,23 +11,20 @@ function deepUpdate(oldState: any, newState: any): any
     }
 }
 
-function deepUpdateObject(oldState: object, newState: object): object {
-    const copy = {};
+function deepUpdateObject(oldState: any, newState: any): object {
+    const copy: any = {};
     const keys = new Set([...Object.keys(oldState), ...Object.keys(newState)]);
-    for (const key of keys) {
+    const keysArray = Array.from(keys.values());
+
+    for (const key of keysArray) {
         const value = deepUpdate(oldState[key], newState[key]);
         if (value !== undefined) {
             copy[key] = value;
         }
     }
 
-    for (const key of keys) {
-        if (copy[key] !== oldState[key]) {
-            return copy;
-        }
-    }
-
-    return newState;
+    return keysArray.find(key => copy[key] !== oldState[key])
+        ?? newState;
 }
 
 function deepUpdateArray(oldState: any[], newState: any[]): any[] {
@@ -52,7 +49,7 @@ function deepUpdateArray(oldState: any[], newState: any[]): any[] {
 function buildDiff(oldState: any, newState: any) {
     // TODO: Doesn't handle deleted keys or null values
     if (newState instanceof Object) {
-        const diff = {};
+        const diff: any = {};
         for (const key of Object.keys(newState)) {
             diff[key] = buildDiff(oldState[key], newState[key]);
         }

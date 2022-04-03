@@ -19,18 +19,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
-
-    "baseUrl": ".",
-    "outDir": "build/dist",
-    "rootDir": "src"
   },
-  "exclude": [
-    "node_modules",
-    "build",
-    "scripts",
-    "acceptance-tests",
-    "webpack",
-    "jest",
-    "src/setupTests.ts"
+  "include": [
+    "src"
   ]
 }
