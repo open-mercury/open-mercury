@@ -1,3 +1,5 @@
 import Server from "./Server"
 
-new Server({ port: 8080 })
+const stateSavePath = 'state.json';
+
+new Server({ port: 8080 }, stateSavePath);
