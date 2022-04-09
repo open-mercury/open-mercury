@@ -1,0 +1,25 @@
+.ship-container {
+  width: 65%;
+  float: left;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.shield-controls {
+  width: 32%;
+  float: right;
+}
+
+.ship {
+  position: relative;
+  width: 100%;
+}
+
+.ship img.shield-overlay {
+  transition: opacity 0.2s;
+}
+
+.ship img {
+  position: absolute;
+  width: 100%;
+}

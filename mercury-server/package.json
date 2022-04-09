@@ -10,13 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ws": "^8.5.0",
-    "deepmerge": "^4.2.2"
+    "ws": "^8.5.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.23",
     "@types/ws": "^8.5.3",
-    "@types/deepmerge": "^2.1.0",
     "nodemon": "^2.0.15",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.3"

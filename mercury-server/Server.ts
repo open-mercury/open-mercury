@@ -1,34 +1,17 @@
-import WebSocket = require('ws')
-import fs = require('fs')
-import deepmerge = require('deepmerge')
+import WebSocket from 'ws';
+import fs from 'fs';
 
-interface StartupRequest {
-    type: 'startup'
-}
-
-interface StateResponse {
-    type: 'state'
-    data: unknown
-}
-
-interface StateChange {
-    type: 'change'
-    id: string
-    data: unknown
-}
-
-type Message = StartupRequest | StateResponse | StateChange;
+import { DispatchAction, Message } from './shared/messages';
 
 export default class Server {
-
-    stateSavePath: string
-    state = {}
+    savePath: string
+    actions: any[] = []
 
     wss: WebSocket.Server;
 
-    constructor(options: WebSocket.ServerOptions, stateSavePath: string) {
-        this.stateSavePath = stateSavePath;
-        this.loadState();
+    constructor(options: WebSocket.ServerOptions, savePath: string) {
+        this.savePath = savePath;
+        this.loadActions();
 
         this.wss = new WebSocket.Server({ ...options, clientTracking: true });
         this.wss.on('connection', (ws) => {
@@ -41,68 +24,76 @@ export default class Server {
         console.log('server listening');
     }
 
-    loadState() {
+    loadActions() {
         try {
-            this.state = JSON.parse(fs.readFileSync(this.stateSavePath).toString('utf8'))
+            this.actions = JSON.parse(fs.readFileSync(this.savePath).toString('utf8'))
         }
         catch (error) {
             const code = (error as any)?.code;
             const fileExists = code !== 'ENOENT';
 
             if (fileExists) {
-                console.error(`failed to load ${this.stateSavePath} even though it exists`);
+                console.error(`failed to load ${this.savePath} even though it exists`);
                 process.exit(1);
             }
         }
     }
 
-    saveState() {
-        fs.writeFileSync(this.stateSavePath + '.tmp', JSON.stringify(this.state));
-        fs.renameSync(this.stateSavePath + '.tmp', this.stateSavePath);
+    saveActions() {
+        fs.writeFileSync(this.savePath + '.tmp', JSON.stringify(this.actions));
+        fs.renameSync(this.savePath + '.tmp', this.savePath);
     }
 
     receiveMessage(ws: WebSocket, message: Message) {
         switch (message.type) {
-            case "startup":
-                this.sendState(ws);
+            case 'startup':
+                this.forwardAllActions(ws);
                 break;
 
-            case "change":
-                this.applyChange(message);
-                this.forwardChanges(message);
-                break;
-
-            case "state":
-                this.sendError(ws, "Server should never be sent a state");
+            case 'dispatch':
+                this.applyAction(message);
+                this.forwardAction(message);
                 break;
 
             default:
-                this.sendError(ws, "Unexpected message type");
+                this.sendError(ws, 'Unexpected message type');
                 break;
         }
     }
 
-    sendState(ws: WebSocket) {
-        ws.send(JSON.stringify({
-            type: "state",
-            data: this.state,
-        }));
+    sendMessage(ws: WebSocket, message: Message) {
+        ws.send(JSON.stringify(message));
     }
 
-    applyChange(change: StateChange) {
-        this.state = deepmerge(this.state, change.data as any)
-        this.saveState();
-    }
+    broadcastMessage(message: Message) {
+        const messageJson = JSON.stringify(message);
 
-    forwardChanges(change: StateChange) {
-        this.wss.clients.forEach((ws: WebSocket) => {
-            ws.send(JSON.stringify(change));
+        this.wss.clients.forEach(ws => {
+            ws.send(messageJson);
         });
+    }
+
+    forwardAllActions(ws: WebSocket) {
+        for (const action of this.actions) {
+            this.sendMessage(ws, {
+                type: 'dispatch',
+                action: action,
+            });
+        }
+    }
+
+    applyAction(message: DispatchAction) {
+        this.actions.push(message.action as any);
+        this.saveActions();
+    }
+
+    forwardAction(message: DispatchAction) {
+        this.broadcastMessage(message);
     }
 
     sendError(ws: WebSocket, message: string) {
         ws.send(JSON.stringify({
-            type: "error",
+            type: 'error',
             message: message
         }));
     }
